@@ -10,6 +10,7 @@ def acceleration(t, A=1, f=0.5):
 
 t = np.linspace(0, 2, 100)
 
-plt.plot(t, velocity(t))
-plt.plot(t, acceleration(t))
+plt.plot(t, velocity(t), label='velocity')
+plt.plot(t, acceleration(t), label='acceleration')
+plt.legend()
 plt.show()
