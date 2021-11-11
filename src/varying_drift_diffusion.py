@@ -4,7 +4,7 @@ from tensorflow.python.keras.utils.np_utils import to_categorical
 from accumulators import *
 
 @njit
-def var_dm_simulator(theta, n_obs, movement_profile, s=1.0, dt=0.001, max_iter=1e4):
+def var_dm_simulator(theta, n_obs, motion_profile, s=1.0, dt=0.001, max_iter=1e4):
     # parameters
     a     = theta[0] # boundary separation
     ndt   = theta[1] # non-decision time
@@ -18,8 +18,8 @@ def var_dm_simulator(theta, n_obs, movement_profile, s=1.0, dt=0.001, max_iter=1
     # iterate over trials
     for n in range(n_obs):
 
-        drift = kappa * movement_profile[n]**2
-        rt[n], resp[n] = varying_evidence_accumulation(drift, a, ndt, bias, kappa, s, dt, max_iter)
+        drift = kappa * motion_profile**2
+        rt[n], resp[n] = varying_evidence_accumulation(drift, a, ndt, bias, s, dt, max_iter)
 
     return rt, resp
 
@@ -36,10 +36,10 @@ def var_dm_priors(n_sim=1):
 
 def var_dm_batch_simulator(n_sim, n_obs):
     prior_samples = var_dm_priors(n_sim)
-    movement_profile = None
+    motion_profile = None
 
     # simulate
-    sim_data = var_dm_batch_simulator_wrap(prior_samples, movement_profile, n_sim, n_obs)
+    sim_data = var_dm_batch_simulator_wrap(prior_samples, motion_profile, n_sim, n_obs)
 
     # data prep
     one_hot_encoded_resp = to_categorical(sim_data[:, :, 1])
@@ -47,10 +47,10 @@ def var_dm_batch_simulator(n_sim, n_obs):
 
 # wrapper function for faster simulation
 @njit(parallel=True)
-def var_dm_batch_simulator_wrap(prior_samples, movement_profile, n_sim, n_obs):
+def var_dm_batch_simulator_wrap(prior_samples, motion_profile, n_sim, n_obs):
     sim_data = np.zeros((n_sim, n_obs, 2), dtype=np.float32)
     # iterate over simulations
     for sim in prange(n_sim):
-        rt, resp = var_dm_simulator(prior_samples[sim], n_obs, movement_profile)
+        rt, resp = var_dm_simulator(prior_samples[sim], n_obs, motion_profile)
         sim_data[sim] = np.vstack((rt, resp)).T
     return sim_data
