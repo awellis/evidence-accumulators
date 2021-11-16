@@ -2,6 +2,7 @@ import numpy as np
 from numba import njit, prange
 from tensorflow.python.keras.utils.np_utils import to_categorical
 from accumulators import *
+from motion_simulation import *
 
 @njit
 def var_dm_simulator(theta, n_obs, motion_profile, s=1.0, dt=0.001, max_iter=1e4):
@@ -17,7 +18,6 @@ def var_dm_simulator(theta, n_obs, motion_profile, s=1.0, dt=0.001, max_iter=1e4
 
     # iterate over trials
     for n in range(n_obs):
-
         drift = kappa * motion_profile**2
         rt[n], resp[n] = varying_evidence_accumulation(drift, a, ndt, bias, s, dt, max_iter)
 
@@ -36,7 +36,7 @@ def var_dm_priors(n_sim=1):
 
 def var_dm_batch_simulator(n_sim, n_obs):
     prior_samples = var_dm_priors(n_sim)
-    motion_profile = None
+    motion_profile = acceleration(2, 1, 0.5)
 
     # simulate
     sim_data = var_dm_batch_simulator_wrap(prior_samples, motion_profile, n_sim, n_obs)
