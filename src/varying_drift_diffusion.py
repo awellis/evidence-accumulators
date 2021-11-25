@@ -4,7 +4,6 @@ from tensorflow.python.keras.utils.np_utils import to_categorical
 from accumulators import *
 from motion_simulation import *
 
-
 @njit
 def var_dm_simulator(theta, n_obs, motion_profile, s=1.0, dt=0.001, max_iter=1e4):
     # parameters
