@@ -4,6 +4,7 @@ from tensorflow.python.keras.utils.np_utils import to_categorical
 from accumulators import *
 from motion_simulation import *
 
+
 @njit
 def var_dm_simulator(theta, n_obs, motion_profile, s=1.0, dt=0.001, max_iter=1e4):
     # parameters
@@ -18,7 +19,7 @@ def var_dm_simulator(theta, n_obs, motion_profile, s=1.0, dt=0.001, max_iter=1e4
 
     # iterate over trials
     for n in range(n_obs):
-        drift = kappa * motion_profile**2
+        drift = kappa * motion_profile[n]**2
         rt[n], resp[n] = varying_evidence_accumulation(drift, a, ndt, bias, s, dt, max_iter)
 
     return rt, resp
@@ -36,21 +37,28 @@ def var_dm_priors(n_sim=1):
 
 def var_dm_batch_simulator(n_sim, n_obs):
     prior_samples = var_dm_priors(n_sim)
-    motion_profile = acceleration(2, 1, 0.5)
+
+    # create an motion experiment with fixed design (temporarily)
+    # maybe I could just give the acceleration peak intensity to BayesFlow instead of 
+    # one-hot-encoded condition 2darray.
+    n_unique_motions = 5
+    motion_dur = 2
+    motion_profile, condition = motion_experiment(n_obs, n_unique_motions, motion_dur)
 
     # simulate
-    sim_data = var_dm_batch_simulator_wrap(prior_samples, motion_profile, n_sim, n_obs)
+    sim_data = var_dm_batch_simulator_wrap(prior_samples, motion_profile, condition, n_sim, n_obs)
 
     # data prep
     one_hot_encoded_resp = to_categorical(sim_data[:, :, 1])
-    return prior_samples, np.c_[np.expand_dims(sim_data[:, :, 0], axis=2), one_hot_encoded_resp]
+    return prior_samples, np.c_[np.expand_dims(sim_data[:, :, 0], axis=2), one_hot_encoded_resp, sim_data[:, :, 3:]]
 
 # wrapper function for faster simulation
 @njit(parallel=True)
-def var_dm_batch_simulator_wrap(prior_samples, motion_profile, n_sim, n_obs):
-    sim_data = np.zeros((n_sim, n_obs, 2), dtype=np.float32)
+def var_dm_batch_simulator_wrap(prior_samples, motion_profile, condition, n_sim, n_obs):
+    sim_data = np.zeros((n_sim, n_obs, condition.shape[1] + 2), dtype=np.float32)
     # iterate over simulations
     for sim in prange(n_sim):
         rt, resp = var_dm_simulator(prior_samples[sim], n_obs, motion_profile)
-        sim_data[sim] = np.vstack((rt, resp)).T
+        # sim_data[sim] = np.c_((rt, resp, condition))
+        sim_data[sim] = np.hstack((np.expand_dims(rt, axis=1), np.expand_dims(resp, axis=1), condition))
     return sim_data
