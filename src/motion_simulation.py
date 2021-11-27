@@ -24,7 +24,7 @@ def motion_experiment(n_trials, n_unique_motions, motion_dur):
 
     motion_set = np.empty((n_unique_motions, int(motion_dur*1000)))
 
-    # sample intensities for uniform distribution
+    # sample intensities from uniform distribution
     motion_intensities = np.random.uniform(0.5, 5, size=n_unique_motions)
 
     # get acceleration for each motion intensity
