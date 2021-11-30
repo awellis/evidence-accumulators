@@ -9,7 +9,7 @@ def acceleration(duration, A, f, dt=0.001):
 
 def velocity(duration, A, f, dt=0.001):
     t = np.arange(0, duration, dt)
-    motion_profile = A * 1/(2*math.pi*f) * (1 - np.cos(2 * np.pi * f * t))
+    motion_profile = A * 1/(2*np.pi*f) * (1 - np.cos(2 * np.pi * f * t))
     return motion_profile
 
 def motion_experiment(n_trials, n_unique_motions, motion_dur):
@@ -25,7 +25,8 @@ def motion_experiment(n_trials, n_unique_motions, motion_dur):
     motion_set = np.empty((n_unique_motions, int(motion_dur*1000)))
 
     # sample intensities from uniform distribution
-    motion_intensities = np.random.uniform(0.5, 5, size=n_unique_motions)
+    rng = np.random.default_rng(2021)
+    motion_intensities = rng.uniform(0.5, 5, size=n_unique_motions)
 
     # get acceleration for each motion intensity
     for i in range(n_unique_motions):
