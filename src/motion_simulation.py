@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from motion_simulation import *
 from tensorflow.python.keras.utils.np_utils import to_categorical
 
@@ -35,7 +36,7 @@ def motion_experiment(n_trials, n_unique_motions, motion_dur):
     # add same motion profiles but in other direction to the motion set
     motion_set = np.append(motion_set, -1 * motion_set, axis=0)
     # add condition index
-    motion_set = np.c_[motion_set,np.arange(n_unique_motions*2)]
+    motion_set = np.c_[motion_set, np.arange(n_unique_motions*2)]
     # duplicate motion set to get n_trials
     motion_set = np.repeat(motion_set, n_trials_per_motion, axis=0)
     # shuffle trials
@@ -45,3 +46,21 @@ def motion_experiment(n_trials, n_unique_motions, motion_dur):
     condition = to_categorical(motion_set[:, motion_dur*1000])
 
     return motion_set[:, :motion_dur*1000], condition
+
+
+def motion_experiment_manual(motion_dur, amplitude, frequency):
+    """
+    Pass an array with amplitudes to exactly replicate the experiment
+    """
+    n_obs = len(amplitude)
+
+    motion_set = np.empty((n_obs, int(motion_dur*1000)))
+    for i in range(n_obs):
+        if amplitude[i] > 0:
+            motion_set[i] = acceleration(motion_dur, amplitude[i], frequency) **2
+        else:
+            motion_set[i] = -1 * acceleration(motion_dur, amplitude[i], frequency) **2
+
+    condition = to_categorical(pd.factorize(amplitude)[0])
+
+    return motion_set, condition
