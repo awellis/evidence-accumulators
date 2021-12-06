@@ -41,14 +41,13 @@ def var_dm_batch_simulator(n_sim, n_obs):
     # create an motion experiment with fixed design (temporarily)
     # maybe I could just give the acceleration peak intensity to BayesFlow instead of
     # one-hot-encoded condition 2darray.
-    n_unique_motions = 5
-    motion_dur = 2
-    motion_set, condition = motion_experiment(n_obs, n_unique_motions, motion_dur)
+    # n_unique_motions = 5
+    # motion_dur = 2
+    # motion_set, condition = motion_experiment(n_obs, n_unique_motions, motion_dur)
 
-    # unique_motions = np.array([-0.725, -0.675, -0.625, -0.575, -0.525,
-    #                        0.525,  0.575,  0.625,  0.675,  0.725], dtype=np.float32)
-    # amplitude = np.repeat(unique_motions, 10)
-    # motion_set, condition = motion_experiment_manual(1, amplitude, 1)
+    unique_motions = np.array([-0.725, -0.675, -0.625, -0.575, -0.525, 0.525,  0.575,  0.625,  0.675,  0.725], dtype=np.float32)
+    amplitude = np.repeat(unique_motions, 10)
+    motion_set, condition = motion_experiment_manual(1, amplitude, 1)
 
     # simulate
     sim_data = var_dm_batch_simulator_wrap(prior_samples, motion_set, condition, n_sim, n_obs)
@@ -60,7 +59,7 @@ def var_dm_batch_simulator(n_sim, n_obs):
 # wrapper function for faster simulation
 # @njit(parallel = True)
 def var_dm_batch_simulator_wrap(prior_samples, motion_set, condition, n_sim, n_obs):
-    sim_data = np.zeros((n_sim, n_obs, 10 + 2), dtype=np.float32)
+    sim_data = np.zeros((n_sim, n_obs, condition.shape[1] + 2), dtype=np.float32)
     # iterate over simulations
     for sim in prange(n_sim):
         # shuffle motion profile together with condition
@@ -71,5 +70,5 @@ def var_dm_batch_simulator_wrap(prior_samples, motion_set, condition, n_sim, n_o
         # simulate trials
         rt, resp = var_dm_simulator(prior_samples[sim], n_obs, motion_set)
         # sim_data[sim] = np.c_((rt, resp, condition))
-        sim_data[sim] = np.hstack((np.expand_dims(rt, axis=1), np.expand_dims(resp, axis=1), condition))
+        sim_data[sim] = np.hstack((np.expand_dims(rt, axis=1), np.expand_dims(resp, axis=1), condition[0:n_obs, :]))
     return sim_data
