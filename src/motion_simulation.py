@@ -57,9 +57,10 @@ def motion_experiment_manual(motion_dur, amplitude, frequency):
     motion_set = np.empty((n_obs, int(motion_dur*1000)))
     for i in range(n_obs):
         if amplitude[i] > 0:
-            motion_set[i] = acceleration(motion_dur, amplitude[i], frequency) **2
+            # motion_set[i] = np.append(acceleration(motion_dur, amplitude[i], frequency)**2)#, [0]*9000
+            motion_set[i] = acceleration(motion_dur, amplitude[i], frequency)**2#, [0]*9000
         else:
-            motion_set[i] = -1 * acceleration(motion_dur, amplitude[i], frequency) **2
+            motion_set[i] = -1 * acceleration(motion_dur, amplitude[i], frequency)**2
 
     condition = to_categorical(pd.factorize(amplitude)[0])
 

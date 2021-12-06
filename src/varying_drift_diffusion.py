@@ -6,7 +6,7 @@ from motion_simulation import *
 from pathlib import Path
 
 @njit
-def var_dm_simulator(theta, n_obs, motion_profile, s=1.0, dt=0.001, max_iter=1e4):
+def var_dm_simulator(theta, n_obs, motion_set, s=1.0, dt=0.001, max_iter=1e4):
     # parameters
     a     = theta[0] # boundary separation
     ndt   = theta[1] # non-decision time
@@ -19,7 +19,7 @@ def var_dm_simulator(theta, n_obs, motion_profile, s=1.0, dt=0.001, max_iter=1e4
 
     # iterate over trials
     for n in range(n_obs):
-        drift = kappa * motion_profile[n]
+        drift = kappa * motion_set[n]
         rt[n], resp[n] = varying_evidence_accumulation(drift, a, ndt, bias, s, dt, max_iter)
 
     return rt, resp
@@ -39,24 +39,16 @@ def var_dm_batch_simulator(n_sim, n_obs):
     prior_samples = var_dm_priors(n_sim)
 
     # create an motion experiment with fixed design (temporarily)
-    # maybe I could just give the acceleration peak intensity to BayesFlow instead of 
+    # maybe I could just give the acceleration peak intensity to BayesFlow instead of
     # one-hot-encoded condition 2darray.
-    # n_unique_motions = 5
-    # motion_dur = 2
-    # motion_profile, condition = motion_experiment(n_obs, n_unique_motions, motion_dur)
-    
-    # get exact motion profile used in the data
-    directory = str(Path().absolute())
-    path = str(Path(directory).parents[1]) + '/evidence-accumulators/data/single_sub_data.csv'
-    # data = np.loadtxt(open(path, 'rb'), delimiter=",", skiprows=1)
-    data = pd.read_csv(path)
-    idx = np.where((data["condition"] == 1) & (data["instruction"] == 1))
-    data = data.loc[idx]
-    amplitude = data["motion"]
-    frequency = data["motion_duration"][0]
-    motion_dur = data["motion_duration"][0]
+    n_unique_motions = 5
+    motion_dur = 2
+    motion_set, condition = motion_experiment(n_obs, n_unique_motions, motion_dur)
 
-    motion_set, condition = motion_experiment_manual(motion_dur, amplitude, frequency)
+    # unique_motions = np.array([-0.725, -0.675, -0.625, -0.575, -0.525,
+    #                        0.525,  0.575,  0.625,  0.675,  0.725], dtype=np.float32)
+    # amplitude = np.repeat(unique_motions, 10)
+    # motion_set, condition = motion_experiment_manual(1, amplitude, 1)
 
     # simulate
     sim_data = var_dm_batch_simulator_wrap(prior_samples, motion_set, condition, n_sim, n_obs)
@@ -66,12 +58,18 @@ def var_dm_batch_simulator(n_sim, n_obs):
     return prior_samples, np.c_[np.expand_dims(sim_data[:, :, 0], axis=2), one_hot_encoded_resp, sim_data[:, :, 3:]]
 
 # wrapper function for faster simulation
-@njit(parallel=True)
-def var_dm_batch_simulator_wrap(prior_samples, motion_profile, condition, n_sim, n_obs):
-    sim_data = np.zeros((n_sim, n_obs, condition.shape[1] + 2), dtype=np.float32)
+# @njit(parallel = True)
+def var_dm_batch_simulator_wrap(prior_samples, motion_set, condition, n_sim, n_obs):
+    sim_data = np.zeros((n_sim, n_obs, 10 + 2), dtype=np.float32)
     # iterate over simulations
     for sim in prange(n_sim):
-        rt, resp = var_dm_simulator(prior_samples[sim], n_obs, motion_profile)
+        # shuffle motion profile together with condition
+        # shuffler = np.random.permutation(len(motion_set))
+        # motion_set = motion_set[shuffler, :]
+        # condition = condition[shuffler, :]
+
+        # simulate trials
+        rt, resp = var_dm_simulator(prior_samples[sim], n_obs, motion_set)
         # sim_data[sim] = np.c_((rt, resp, condition))
         sim_data[sim] = np.hstack((np.expand_dims(rt, axis=1), np.expand_dims(resp, axis=1), condition))
     return sim_data
