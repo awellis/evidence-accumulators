@@ -63,9 +63,9 @@ def var_dm_batch_simulator_wrap(prior_samples, motion_set, condition, n_sim, n_o
     # iterate over simulations
     for sim in prange(n_sim):
         # shuffle motion profile together with condition
-        # shuffler = np.random.permutation(len(motion_set))
-        # motion_set = motion_set[shuffler, :]
-        # condition = condition[shuffler, :]
+        shuffler = np.random.permutation(len(motion_set))
+        motion_set = motion_set[shuffler, :]
+        condition = condition[shuffler, :]
 
         # simulate trials
         rt, resp = var_dm_simulator(prior_samples[sim], n_obs, motion_set)
