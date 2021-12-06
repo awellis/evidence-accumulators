@@ -3,6 +3,7 @@ from numba import njit, prange
 from tensorflow.python.keras.utils.np_utils import to_categorical
 from accumulators import *
 from motion_simulation import *
+from pathlib import Path
 
 @njit
 def var_dm_simulator(theta, n_obs, motion_profile, s=1.0, dt=0.001, max_iter=1e4):
@@ -18,7 +19,7 @@ def var_dm_simulator(theta, n_obs, motion_profile, s=1.0, dt=0.001, max_iter=1e4
 
     # iterate over trials
     for n in range(n_obs):
-        drift = kappa * motion_profile[n]**2
+        drift = kappa * motion_profile[n]
         rt[n], resp[n] = varying_evidence_accumulation(drift, a, ndt, bias, s, dt, max_iter)
 
     return rt, resp
@@ -27,8 +28,8 @@ def var_dm_priors(n_sim=1):
 
     a     = np.random.uniform(0.5, 3.0, size=n_sim)
     ndt   = np.random.uniform(0.1, 0.5, size=n_sim)
-    bias  = np.random.normal(0.5, 0.05, size=n_sim)
-    kappa = np.random.uniform(0.0, 3.0, size=n_sim)
+    bias  = np.random.uniform(0.2, 0.8, size=n_sim)
+    kappa = np.random.uniform(0.0, 5.0, size=n_sim)
 
     theta = np.array([a, ndt, bias, kappa]).T
 
@@ -38,14 +39,27 @@ def var_dm_batch_simulator(n_sim, n_obs):
     prior_samples = var_dm_priors(n_sim)
 
     # create an motion experiment with fixed design (temporarily)
-    # maybe I could just give the acceleration peak intensity to BayesFlow instead of 
+    # maybe I could just give the acceleration peak intensity to BayesFlow instead of 
     # one-hot-encoded condition 2darray.
-    n_unique_motions = 5
-    motion_dur = 2
-    motion_profile, condition = motion_experiment(n_obs, n_unique_motions, motion_dur)
+    # n_unique_motions = 5
+    # motion_dur = 2
+    # motion_profile, condition = motion_experiment(n_obs, n_unique_motions, motion_dur)
+    
+    # get exact motion profile used in the data
+    directory = str(Path().absolute())
+    path = str(Path(directory).parents[1]) + '/evidence-accumulators/data/single_sub_data.csv'
+    # data = np.loadtxt(open(path, 'rb'), delimiter=",", skiprows=1)
+    data = pd.read_csv(path)
+    idx = np.where((data["condition"] == 1) & (data["instruction"] == 1))
+    data = data.loc[idx]
+    amplitude = data["motion"]
+    frequency = data["motion_duration"][0]
+    motion_dur = data["motion_duration"][0]
+
+    motion_set, condition = motion_experiment_manual(motion_dur, amplitude, frequency)
 
     # simulate
-    sim_data = var_dm_batch_simulator_wrap(prior_samples, motion_profile, condition, n_sim, n_obs)
+    sim_data = var_dm_batch_simulator_wrap(prior_samples, motion_set, condition, n_sim, n_obs)
 
     # data prep
     one_hot_encoded_resp = to_categorical(sim_data[:, :, 1])
