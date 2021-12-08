@@ -28,7 +28,7 @@ def var_dm_priors(n_sim=1):
     a     = np.random.uniform(0.5, 3.0, size=n_sim)
     ndt   = np.random.uniform(0.1, 0.5, size=n_sim)
     bias  = np.random.uniform(0.2, 0.8, size=n_sim)
-    kappa = np.random.uniform(0.0, 10.0, size=n_sim)
+    kappa = np.random.uniform(0.0, 5.0, size=n_sim)
 
     theta = np.array([a, ndt, bias, kappa]).T
 
