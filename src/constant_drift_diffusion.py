@@ -1,3 +1,4 @@
+from enum import unique
 import numpy as np
 from numba import njit, prange
 from tensorflow.python.keras.utils.np_utils import to_categorical
@@ -23,11 +24,11 @@ def const_dm_simulator(theta, n_obs, amplitude, s=0.1, dt=0.001, max_iter=1e4):
 
     return rt, resp
 
-def var_dm_priors(n_sim=1):
+def const_dm_priors(n_sim=1):
 
     a     = np.random.uniform(0.5, 3.0, size=n_sim)
     ndt   = np.random.uniform(0.1, 0.5, size=n_sim)
-    bias  = np.random.uniform(0.2, 0.8, size=n_sim)
+    bias  = np.random.uniform(0.2, 0.8, size=n_sim) # take beta(20, 20)
     kappa = np.random.uniform(0.0, 5.0, size=n_sim)
 
     theta = np.array([a, ndt, bias, kappa]).T
@@ -35,7 +36,7 @@ def var_dm_priors(n_sim=1):
     return theta
 
 def const_dm_batch_simulator(n_sim, n_obs):
-    prior_samples = var_dm_priors(n_sim)
+    prior_samples = const_dm_priors(n_sim)
 
     unique_motions = np.array([-0.725, -0.675, -0.625, -0.575, -0.525, 0.525,  0.575,  0.625,  0.675,  0.725], dtype=np.float32)
     amplitude = np.repeat(unique_motions, 10)
@@ -64,3 +65,39 @@ def const_dm_batch_simulator_wrap(prior_samples, amplitude, condition, n_sim, n_
         sim_data[sim] = np.hstack((np.expand_dims(rt, axis=1), np.expand_dims(resp, axis=1), condition[0:n_obs, :]))
 
     return sim_data
+
+@njit(parallel=True)
+def const_dm_simulator_pp_check(posterior_samples, amplitude, condition, n_sim, n_obs):
+    
+    sim_data = np.zeros((n_sim, n_obs, 3), dtype=np.float32)
+    # iterate over simulations
+    for sim in prange(n_sim):
+        # simulate trials
+        rt, resp = const_dm_simulator(posterior_samples[sim], n_obs, amplitude)
+        sim_data[sim] = np.hstack((np.expand_dims(rt, axis=1), np.expand_dims(resp, axis=1),
+                                   np.expand_dims(amplitude, axis=1)))
+
+    return sim_data
+
+
+def const_dm_pp_check(emp_data, posterior_samples, amplitude):
+    n_sim = posterior_samples.shape[0]
+    n_obs = emp_data.shape[1]
+    condition = emp_data[:, 2:]
+    unique_amplitude = np.sort(np.unique(amplitude))
+
+    pred_resp_prop = np.empty((n_sim, 10))
+
+    # simulate data with samples from the joint posterior distribution
+    pred_data = const_dm_simulator_pp_check(posterior_samples, amplitude, condition, n_sim, n_obs)
+
+    # iterate over simulations
+    for sim in range(n_sim):
+        # iterate over amplitudes
+        for i in range(len(unique_amplitude)):
+            tmp_data = pred_data[sim, (pred_data[sim, :, 2] == unique_amplitude[i]), :]
+            pred_resp_prop[sim, i] = tmp_data[:, 1].mean()
+
+    pred_resp_prop_quantiles = np.quantile(pred_data, [0.025, 0.5, 0.975], axis=0)
+
+    return pred_resp_prop

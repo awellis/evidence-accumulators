@@ -16,7 +16,7 @@ def varying_evidence_accumulation(drift, a, ndt, bias, s=0.1, dt=0.001, max_iter
     
     if n_iter < max_iter:
         rt = n_iter*dt + ndt
-        resp = 1 if x>0 else 0
+        resp = 1 if x > 0 else 0
     else:
         rt = 0
         resp = 0
