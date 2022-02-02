@@ -1,8 +1,8 @@
 library(tidyverse)
 library(magrittr)
 
-df <- read_csv("/Users/lukas/Desktop/imagery_data.csv")
-# df <- read_csv("/Users/lukas/Desktop/imagery_data_7005.csv")
+# df <- read_csv("/Users/lukas/Desktop/imagery_data.csv")
+df <- read_csv("/Users/lukas/Desktop/imagery_data_7005.csv")
 
 # resp == "left" --> 1
 # instruction == "left" --> 1

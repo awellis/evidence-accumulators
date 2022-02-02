@@ -100,7 +100,6 @@ def var_dm_simulator_pp_check(posterior_samples, amplitude, n_sim, n_obs):
 
     return sim_data
 
-
 def var_dm_pp_check(emp_data, posterior_samples):
     n_sim = posterior_samples.shape[0]
     n_obs = emp_data.shape[0]
