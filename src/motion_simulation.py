@@ -16,6 +16,7 @@ def velocity(duration, A, f, dt=0.001):
     motion_profile = A * 1/(2*np.pi*f) * (1 - np.cos(2 * np.pi * f * t))
     return motion_profile
 
+
 def motion_experiment(n_trials, n_unique_motions, motion_dur):
     """
     Quick and dirty simulation of a motion experiment with
